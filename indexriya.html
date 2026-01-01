@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #1e293b;
+            color: white;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 64rem;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .scene {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            transition: background 1s;
+        }
+
+        .time-location-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.75);
+            color: white;
+            padding: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .location,
+        .time {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .dialogue-box {
+            padding: 1.5rem;
+            background: rgba(30, 41, 59, 0.9);
+            transition: all 1s;
+        }
+
+        .character-name {
+            color: #94a3b8;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+
+        .dialogue-text {
+            font-size: 1.125rem;
+            margin-bottom: 1.5rem;
+            transition: opacity 0.5s;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1.5rem;
+        }
+
+        button {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            padding: 0.5rem;
+            transition: color 0.3s;
+        }
+
+        button:hover:not(:disabled) {
+            color: white;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .info-card {
+            max-width: 64rem;
+            margin: 2rem;
+            padding: 2rem;
+            background: #1e293b;
+            border-radius: 0.5rem;
+            border: 1px solid #334155;
+        }
+
+        .info-card h1 {
+            font-size: 1.875rem;
+            font-weight: 300;
+            margin-bottom: 2rem;
+        }
+
+        .info-card section {
+            margin-bottom: 1.5rem;
+        }
+
+        .info-card h2 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .info-card ul {
+            padding-left: 1.5rem;
+        }
+
+        .info-card li {
+            margin-bottom: 0.5rem;
+        }
+
+        .visual-distortion {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .distortion-circle {
+            position: absolute;
+            transition: all 1s ease-in-out;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <div id="container" class="container">
+
+        <div id="scene" class="scene">
+
+            <div id="timeLocationBar" class="time-location-bar" style="display: none;">
+                <div class="location">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                        <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                    <span id="locationText"></span>
+                </div>
+                <div class="time">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <span id="timeText"></span>
+                </div>
+            </div>
+
+            <div id="visualDistortion" class="visual-distortion"></div>
+
+        </div>
+
+        <div id="dialogueBox" class="dialogue-box">
+            <div id="characterName" class="character-name"></div>
+            <div id="dialogueText" class="dialogue-text"></div>
+            <div class="controls">
+                <button id="prevButton" onclick="handlePrevious()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+                <button id="nextButton" onclick="handleNext()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="infoCard" class="info-card" style="display: none;">
+        <!-- Info card content will be dynamically inserted -->
+    </div>
+
+    <script>
+        const scenes = [
+            {
+                background: "linear-gradient(to bottom, #e0e7ff, #c7d2fe)",
+                dialogues: [
+                    "I wake up, and everything feels wrong. My hands itch. I immediately start checking that my blankets are folded perfectly. They have to be. I can't leave them a little askew.",
+                    "The faucet needs to be turned exactly 90 degrees. I turn it. Twice. No, three times. There, now it's perfect.",
+                    "I try to focus on my morning routine, but all I can think about are the little imperfections. It's consuming me."
+                ],
+                character: "Riya",
+                distortionLevel: 0,
+                type: "normal",
+                location: "Bedroom",
+                time: "7:00 AM"
+            },
+            {
+                background: "linear-gradient(to bottom, #e0e7ff, #c7d2fe)",
+                dialogues: [
+                    "The clock is ticking too loudly today. Each second feels like a pressure building up inside me.",
+                    "I have to double-check everything again before I leave. The door lock, the stove, the window. All have to be just right. They can't be wrong."
+                ],
+                character: "Riya",
+                distortionLevel: 1,
+                type: "normal",
+                location: "Living Room",
+                time: "7:30 AM"
+            },
+            {
+                background: "linear-gradient(to bottom, #a5b4fc, #818cf8)",
+                dialogues: [
+                    "My reflection seems blurry. I touch my face. The feeling of germs is unbearable, so I wash my hands again... and again.",
+                    "Each time I wash my hands, I feel a little better. But there's always a lingering fear that I missed something. I have to wash again."
+                ],
+                character: "Riya",
+                distortionLevel: 2,
+                type: "normal",
+                location: "Bathroom",
+                time: "8:00 AM"
+            },
+            {
+                background: "linear-gradient(to bottom, #93c5fd, #60a5fa)",
+                dialogues: [
+                    "I can't focus. The thought of things being wrong keeps circling in my mind. I try to read, but I can't make sense of the words.",
+                    "Everything around me feels so disordered, like the world is slightly out of place. I need to fix it all."
+                ],
+                character: "Riya",
+                distortionLevel: 3,
+                type: "normal",
+                location: "Bedroom",
+                time: "8:30 AM"
+            },
+            {
+                background: "black",
+                dialogues: [
+                    "The thoughts are louder now. The need to check things again and again. The fear that if I don’t, something terrible will happen."
+                ],
+                character: "Riya",
+                distortionLevel: 4,
+                type: "normal",
+                location: "Bedroom",
+                time: "9:00 AM"
+            },
+            {
+                background: "linear-gradient(to bottom, #bfdbfe, #93c5fd)",
+                dialogues: [
+                    "I stand in front of the mirror, trying to push back the urge to count the tiles on the floor.",
+                    "It’s unbearable, but I need to. I need everything to be right. I can't leave it like this."
+                ],
+                character: "Riya",
+                distortionLevel: 5,
+                type: "normal",
+                location: "Bathroom",
+                time: "9:30 AM"
+            },
+            {
+                background: "linear-gradient(to bottom, #818cf8, #6366f1)",
+                dialogues: [
+                    "The compulsions are overwhelming. It’s a constant cycle of fear and checking. I feel trapped in my own mind."
+                ],
+                character: "Riya",
+                distortionLevel: 6,
+                type: "normal",
+                location: "Living Room",
+                time: "10:00 AM"
+            },
+            // New slides added for expanded story:
+            {
+                background: "linear-gradient(to bottom, #9e9e9e, #c0c0c0)",
+                dialogues: [
+                    "I meet my friend for coffee, but I can't stop thinking about the germs on the table. Should I ask the waiter to wipe it down again?",
+                    "She notices something is off. 'Are you okay, Riya?' she asks. But I just smile and say, 'I'm fine.' But inside, it's overwhelming."
+                ],
+                character: "Riya",
+                distortionLevel: 3,
+                type: "normal",
+                location: "Café",
+                time: "12:00 PM"
+            },
+            {
+                background: "linear-gradient(to bottom, #d1d5db, #e5e7eb)",
+                dialogues: [
+                    "I try to enjoy a meal, but the urge to make sure every utensil is perfectly arranged on the table overtakes me.",
+                    "Each bite is interrupted by the need to check, to count, to make sure things are 'right.'"
+                ],
+                character: "Riya",
+                distortionLevel: 4,
+                type: "normal",
+                location: "Restaurant",
+                time: "1:00 PM"
+            },
+            {
+                background: "linear-gradient(to bottom, #1f2937, #111827)",
+                dialogues: [
+                    "I'm alone in my room again, but it doesn't feel like peace. It feels like a never-ending loop of thoughts.",
+                    "I try to read, but the words blur as the need to check, to clean, to perfect, takes over my every move."
+                ],
+                character: "Riya",
+                distortionLevel: 5,
+                type: "normal",
+                location: "Bedroom",
+                time: "2:30 PM"
+            },
+            {
+                background: "linear-gradient(to bottom, #6b7280, #374151)",
+                dialogues: [
+                    "My family is beginning to notice. They're asking questions. Why do I wash my hands so many times? Why do I check the doors so often?",
+                    "But I can't explain it. I can't make them understand what it's like to be trapped in this cycle."
+                ],
+                character: "Riya",
+                distortionLevel: 4,
+                type: "normal",
+                location: "Living Room",
+                time: "3:00 PM"
+            },
+            {
+                background: "linear-gradient(to bottom, #4b5563, #2d3748)",
+                dialogues: [
+                    "I finally go to therapy. The therapist is kind, but I feel a wave of shame. I don't want to admit how bad it's gotten.",
+                    "'It's okay to feel like this,' she says. 'We can work through it together.'"
+                ],
+                character: "Riya",
+                distortionLevel: 4,
+                type: "normal",
+                location: "Therapy Room",
+                time: "4:00 PM"
+            },
+            {
+                background: "linear-gradient(to bottom, #d1fae5, #34d399)",
+                dialogues: [
+                    "I start working on the techniques my therapist suggested. It’s hard. Every fiber of my being wants to give in to the compulsions.",
+                    "'Just one more check,' I tell myself. But slowly, I'm learning to resist."
+                ],
+                character: "Riya",
+                distortionLevel: 3,
+                type: "normal",
+                location: "Living Room",
+                time: "5:00 PM"
+            },
+            {
+                background: "linear-gradient(to bottom, #fbbf24, #f59e0b)",
+                dialogues: [
+                    "It's not easy, but I'm beginning to see small victories. I can go longer without checking. I can breathe without the overwhelming urge to wash my hands.",
+                    "I tell myself, 'I'm getting better.' And for the first time in a while, I believe it."
+                ],
+                character: "Riya",
+                distortionLevel: 2,
+                type: "normal",
+                location: "Bedroom",
+                time: "6:00 PM"
+            },
+            {
+                background: "linear-gradient(to bottom, #7c3aed, #9333ea)",
+                dialogues: [
+                    "Some days are harder than others. But I'm learning to talk about it. I tell my family when I'm feeling overwhelmed.",
+                    "'It's okay, Riya. We're here for you,' they say. And I realize, for the first time, that I don't have to fight this alone."
+                ],
+                character: "Riya",
+                distortionLevel: 3,
+                type: "normal",
+                location: "Living Room",
+                time: "7:00 PM"
+            },
+            {
+                background: "linear-gradient(to bottom, #6366f1, #4f46e5)",
+                dialogues: [
+                    "Today, I didn't have to wash my hands three times. I only did it once. It feels like progress.",
+                    "It's a small step, but it means everything. I know there's a long road ahead, but I'm ready to take it."
+                ],
+                character: "Riya",
+                distortionLevel: 2,
+                type: "normal",
+                location: "Bathroom",
+                time: "8:00 PM"
+            },
+            {
+                background: "linear-gradient(to bottom, #10b981, #059669)",
+                dialogues: [
+                    "The journey is ongoing. There are days when I still feel trapped by my thoughts. But I know now that recovery is possible.",
+                    "I have the strength to face it. And I know that asking for help is the bravest thing I can do."
+                ],
+                character: "Riya",
+                distortionLevel: 1,
+                type: "normal",
+                location: "Bedroom",
+                time: "9:00 PM"
+            },
+            {
+                background: "black",
+                dialogues: [
+                    "End of Story"
+                ],
+                character: "",
+                distortionLevel: 0,
+                type: "void",
+                time: "10:00 PM"
+            }
+        ];
+
+        let currentScene = 0;
+        let currentDialogue = 0;
+
+        function updateScene() {
+            const scene = scenes[currentScene];
+            const sceneEl = document.getElementById('scene');
+            sceneEl.style.background = scene.background;
+
+            const timeLocationBar = document.getElementById('timeLocationBar');
+            const locationText = document.getElementById('locationText');
+            const timeText = document.getElementById('timeText');
+            const dialogueBox = document.getElementById('dialogueBox');
+            const characterName = document.getElementById('characterName');
+            const dialogueText = document.getElementById('dialogueText');
+            
+            characterName.textContent = scene.character;
+            dialogueText.textContent = scene.dialogues[currentDialogue];
+            
+            if (scene.type === "normal") {
+                timeLocationBar.style.display = 'flex';
+                locationText.textContent = scene.location;
+                timeText.textContent = scene.time;
+            } else {
+                timeLocationBar.style.display = 'none';
+            }
+
+            updateDistortion(scene.distortionLevel);
+        }
+
+        function updateDistortion(distortionLevel) {
+            const visualDistortion = document.getElementById('visualDistortion');
+            visualDistortion.innerHTML = '';
+
+            for (let i = 0; i < distortionLevel; i++) {
+                const distortionCircle = document.createElement('div');
+                distortionCircle.className = 'distortion-circle';
+                distortionCircle.style.width = `${50 + distortionLevel * 10}px`;
+                distortionCircle.style.height = `${50 + distortionLevel * 10}px`;
+                distortionCircle.style.animation = 'spin 10s infinite linear';
+                visualDistortion.appendChild(distortionCircle);
+            }
+        }
+
+        function handleNext() {
+            currentDialogue++;
+            if (currentDialogue >= scenes[currentScene].dialogues.length) {
+                currentDialogue = 0;
+                currentScene++;
+                if (currentScene >= scenes.length - 1) {
+                    showInfoCard();
+                    return;
+                }
+            }
+            updateScene();
+        }
+
+        function handlePrevious() {
+            currentDialogue--;
+            if (currentDialogue < 0) {
+                currentScene--;
+                if (currentScene < 0) {
+                    currentScene = 0;
+                }
+                currentDialogue = scenes[currentScene].dialogues.length - 1;
+            }
+            updateScene();
+        }
+
+        function showInfoCard() {
+            const infoCard = document.getElementById('infoCard');
+            infoCard.style.display = 'block';
+            infoCard.innerHTML = `
+                <h1>Understanding OCD (Obsessive-Compulsive Disorder)</h1>
+                <section>
+                    <h2>What is OCD?</h2>
+                    <p>OCD is a mental health disorder characterized by recurring, unwanted thoughts (obsessions) and/or repetitive behaviors (compulsions). It often disrupts daily life and can cause significant distress.</p>
+                </section>
+                <section>
+                    <h2>Early Warning Signs</h2>
+                    <ul>
+                        <li>Repetitive thoughts or urges</li>
+                        <li>Excessive cleaning or hand washing</li>
+                        <li>Difficulty discarding items</li>
+                        <li>Need for symmetry and order</li>
+                        <li>Intrusive thoughts or fears</li>
+                    </ul>
+                </section>
+                <section>
+                    <h2>Treatment and Support</h2>
+                    <p>OCD can be managed with treatment. Early intervention leads to better outcomes. Treatment typically includes:</p>
+                    <ul>
+                        <li>Cognitive Behavioral Therapy (CBT)</li>
+                        <li>Exposure and Response Prevention (ERP)</li>
+                        <li>Medication (SSRIs)</li>
+                        <li>Support groups</li>
+                    </ul>
+                </section>
+                <section>
+                    <h2>Seeking Help</h2>
+                    <p>If you or someone you know is struggling with OCD, it's important to seek professional help. Treatment can significantly reduce symptoms and improve quality of life.</p>
+                </section>
+            `;
+        }
+
+        updateScene();
+    </script>
+
+</body>
+
+</html>

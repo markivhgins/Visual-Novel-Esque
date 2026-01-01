@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #1e293b;
+            color: white;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 64rem;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .scene {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            transition: background 1s;
+        }
+
+        .time-location-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.75);
+            color: white;
+            padding: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .location,
+        .time {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .dialogue-box {
+            padding: 1.5rem;
+            background: rgba(30, 41, 59, 0.9);
+            transition: all 1s;
+        }
+
+        .character-name {
+            color: #94a3b8;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+
+        .dialogue-text {
+            font-size: 1.125rem;
+            margin-bottom: 1.5rem;
+            transition: opacity 0.5s;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1.5rem;
+        }
+
+        button {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            padding: 0.5rem;
+            transition: color 0.3s;
+        }
+
+        button:hover:not(:disabled) {
+            color: white;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .info-card {
+            max-width: 64rem;
+            margin: 2rem;
+            padding: 2rem;
+            background: #1e293b;
+            border-radius: 0.5rem;
+            border: 1px solid #334155;
+        }
+
+        .info-card h1 {
+            font-size: 1.875rem;
+            font-weight: 300;
+            margin-bottom: 2rem;
+        }
+
+        .info-card section {
+            margin-bottom: 1.5rem;
+        }
+
+        .info-card h2 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .info-card ul {
+            padding-left: 1.5rem;
+        }
+
+        .info-card li {
+            margin-bottom: 0.5rem;
+        }
+
+        .visual-distortion {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .distortion-circle {
+            position: absolute;
+            transition: all 1s ease-in-out;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="container" class="container">
+        <div id="scene" class="scene">
+            <div id="timeLocationBar" class="time-location-bar" style="display: none;">
+                <div class="location">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                        <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                    <span id="locationText"></span>
+                </div>
+                <div class="time">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <span id="timeText"></span>
+                </div>
+            </div>
+            <div id="visualDistortion" class="visual-distortion"></div>
+        </div>
+        <div id="dialogueBox" class="dialogue-box">
+            <div id="characterName" class="character-name"></div>
+            <div id="dialogueText" class="dialogue-text"></div>
+            <div class="controls">
+                <button id="prevButton" onclick="handlePrevious()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7" />
+                    </svg>
+                </button>
+                <button id="nextButton" onclick="handleNext()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 12h14M12 5l7 7-7 7" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+    <div id="infoCard" class="info-card" style="display: none;">
+        <!-- Info card content will be dynamically inserted -->
+    </div>
+
+    <script>
+        const scenes = [
+            {
+                background: "linear-gradient(to bottom, #e0e7ff, #c7d2fe)",
+                dialogues: [
+                    "I wake up to the sound of my alarm. It’s too loud. I cover my ears and count to ten, waiting for the noise to stop.",
+                    "The texture of my blanket feels wrong today. I adjust it carefully, making sure it’s just right before I get out of bed."
+                ],
+                character: "Kabir",
+                distortionLevel: 0,
+                type: "normal",
+                location: "Bedroom",
+                time: "7:00 AM"
+            },
+            {
+                background: "linear-gradient(to bottom, #e0e7ff, #c7d2fe)",
+                dialogues: [
+                    "Breakfast is always the same: toast with butter, cut into four equal pieces. I can’t eat it if it’s not perfect.",
+                    "The sound of the toaster is overwhelming. I focus on the pattern of the tiles on the floor to calm myself."
+                ],
+                character: "Kabir",
+                distortionLevel: 1,
+                type: "normal",
+                location: "Kitchen",
+                time: "7:30 AM"
+            },
+            {
+                background: "linear-gradient(to bottom, #a5b4fc, #818cf8)",
+                dialogues: [
+                    "I’m at school now. The hallway is too bright, and there are too many people. I keep my head down and focus on my shoes.",
+                    "Someone bumps into me, and it feels like electricity. I need to find a quiet place to calm down."
+                ],
+                character: "Kabir",
+                distortionLevel: 2,
+                type: "normal",
+                location: "School",
+                time: "8:30 AM"
+            },
+            {
+                background: "linear-gradient(to bottom, #93c5fd, #60a5fa)",
+                dialogues: [
+                    "I sit in the back of the classroom. The teacher’s voice is too loud, and the fluorescent lights are flickering.",
+                    "I start counting the lines on my notebook to distract myself from the noise. It helps, but only a little."
+                ],
+                character: "Kabir",
+                distortionLevel: 3,
+                type: "normal",
+                location: "Classroom",
+                time: "9:00 AM"
+            },
+            {
+                background: "linear-gradient(to bottom, #818cf8, #6366f1)",
+                dialogues: [
+                    "Lunchtime is the hardest. The cafeteria is loud, and the smells are overwhelming. I sit alone and eat my sandwich.",
+                    "I wish I could join the others, but it’s too much. I don’t know how to explain it to them."
+                ],
+                character: "Kabir",
+                distortionLevel: 4,
+                type: "normal",
+                location: "Cafeteria",
+                time: "12:00 PM"
+            },
+            {
+                background: "linear-gradient(to bottom, #6366f1, #4f46e5)",
+                dialogues: [
+                    "After school, I go to the park. It’s quiet here, and I can watch the birds. They don’t expect anything from me.",
+                    "I feel calm for the first time today. The world makes sense when I’m alone."
+                ],
+                character: "Kabir",
+                distortionLevel: 2,
+                type: "normal",
+                location: "Park",
+                time: "3:00 PM"
+            },
+            {
+                background: "linear-gradient(to bottom, #4f46e5, #4338ca)",
+                dialogues: [
+                    "At home, I retreat to my room. I turn off the lights and sit in the corner. It’s safe here.",
+                    "I think about tomorrow. It’s going to be another long day, but I’ll get through it. I always do."
+                ],
+                character: "Kabir",
+                distortionLevel: 3,
+                type: "normal",
+                location: "Bedroom",
+                time: "6:00 PM"
+            },
+            {
+                background: "linear-gradient(to bottom, #4338ca, #3730a3)",
+                dialogues: [
+                    "I try to join my family for dinner, but the noise of the TV and everyone talking is too much.",
+                    "I take my plate to my room. It’s easier to eat alone, even if it feels lonely sometimes."
+                ],
+                character: "Kabir",
+                distortionLevel: 4,
+                type: "normal",
+                location: "Dining Room",
+                time: "7:00 PM"
+            },
+            {
+                background: "linear-gradient(to bottom, #3730a3, #312e81)",
+                dialogues: [
+                    "I spend the evening drawing. It’s my favorite way to relax. The lines and shapes make sense to me.",
+                    "I draw a bird flying freely in the sky. I wish I could feel that free sometimes."
+                ],
+                character: "Kabir",
+                distortionLevel: 2,
+                type: "normal",
+                location: "Bedroom",
+                time: "8:00 PM"
+            },
+            {
+                background: "linear-gradient(to bottom, #312e81, #1e1b4b)",
+                dialogues: [
+                    "My mom comes to check on me. She asks if I’m okay. I nod, but I don’t know how to explain how I feel.",
+                    "She sits with me for a while, and it’s nice. She doesn’t ask too many questions."
+                ],
+                character: "Kabir",
+                distortionLevel: 1,
+                type: "normal",
+                location: "Bedroom",
+                time: "8:30 PM"
+            },
+            {
+                background: "linear-gradient(to bottom, #1e1b4b, #0f172a)",
+                dialogues: [
+                    "I try to read a book, but the words don’t make sense tonight. I put it down and listen to music instead.",
+                    "The music helps. It blocks out the noise in my head and lets me focus on something familiar."
+                ],
+                character: "Kabir",
+                distortionLevel: 3,
+                type: "normal",
+                location: "Bedroom",
+                time: "9:00 PM"
+            },
+            {
+                background: "linear-gradient(to bottom, #0f172a, #020617)",
+                dialogues: [
+                    "I think about tomorrow. Will it be easier? I don’t know, but I’ll try my best.",
+                    "I close my eyes and take a deep breath. Tomorrow is another day."
+                ],
+                character: "Kabir",
+                distortionLevel: 2,
+                type: "normal",
+                location: "Bedroom",
+                time: "9:30 PM"
+            },
+            {
+                background: "linear-gradient(to bottom, #020617, #000000)",
+                dialogues: [
+                    "I lie in bed, staring at the ceiling. The world feels so big and overwhelming sometimes.",
+                    "But I remind myself that I’m strong. I’ve made it through today, and I’ll make it through tomorrow."
+                ],
+                character: "Kabir",
+                distortionLevel: 1,
+                type: "normal",
+                location: "Bedroom",
+                time: "10:00 PM"
+            },
+            {
+                background: "linear-gradient(to bottom, #000000, #000000)",
+                dialogues: [
+                    "End of Story"
+                ],
+                character: "",
+                distortionLevel: 0,
+                type: "void",
+                time: "10:30 PM"
+            }
+        ];
+
+        let currentScene = 0;
+        let currentDialogue = 0;
+
+        function updateScene() {
+            const scene = scenes[currentScene];
+            const sceneEl = document.getElementById('scene');
+            sceneEl.style.background = scene.background;
+
+            const timeLocationBar = document.getElementById('timeLocationBar');
+            const locationText = document.getElementById('locationText');
+            const timeText = document.getElementById('timeText');
+            const dialogueBox = document.getElementById('dialogueBox');
+            const characterName = document.getElementById('characterName');
+            const dialogueText = document.getElementById('dialogueText');
+
+            characterName.textContent = scene.character;
+            dialogueText.textContent = scene.dialogues[currentDialogue];
+
+            if (scene.type === "normal") {
+                timeLocationBar.style.display = 'flex';
+                locationText.textContent = scene.location;
+                timeText.textContent = scene.time;
+            } else {
+                timeLocationBar.style.display = 'none';
+            }
+
+            updateDistortion(scene.distortionLevel);
+        }
+
+        function updateDistortion(distortionLevel) {
+            const visualDistortion = document.getElementById('visualDistortion');
+            visualDistortion.innerHTML = '';
+
+            for (let i = 0; i < distortionLevel; i++) {
+                const distortionCircle = document.createElement('div');
+                distortionCircle.className = 'distortion-circle';
+                distortionCircle.style.width = `${50 + distortionLevel * 10}px`;
+                distortionCircle.style.height = `${50 + distortionLevel * 10}px`;
+                distortionCircle.style.animation = 'spin 10s infinite linear';
+                visualDistortion.appendChild(distortionCircle);
+            }
+        }
+
+        function handleNext() {
+            currentDialogue++;
+            if (currentDialogue >= scenes[currentScene].dialogues.length) {
+                currentDialogue = 0;
+                currentScene++;
+                if (currentScene >= scenes.length - 1) {
+                    showInfoCard();
+                    return;
+                }
+            }
+            updateScene();
+        }
+
+        function handlePrevious() {
+            currentDialogue--;
+            if (currentDialogue < 0) {
+                currentScene--;
+                if (currentScene < 0) {
+                    currentScene = 0;
+                }
+                currentDialogue = scenes[currentScene].dialogues.length - 1;
+            }
+            updateScene();
+        }
+
+        function showInfoCard() {
+            const infoCard = document.getElementById('infoCard');
+            infoCard.style.display = 'block';
+            infoCard.innerHTML = `
+                <h1>Understanding Autism</h1>
+                <section>
+                    <h2>What is Autism?</h2>
+                    <p>Autism, or Autism Spectrum Disorder (ASD), is a developmental condition that affects communication, behavior, and social interaction. It is a spectrum, meaning it affects individuals differently and to varying degrees.</p>
+                </section>
+                <section>
+                    <h2>Common Characteristics</h2>
+                    <ul>
+                        <li>Sensory sensitivities (e.g., to light, sound, or touch)</li>
+                        <li>Difficulty with social interactions</li>
+                        <li>Repetitive behaviors or routines</li>
+                        <li>Intense focus on specific interests</li>
+                        <li>Challenges with verbal and non-verbal communication</li>
+                    </ul>
+                </section>
+                <section>
+                    <h2>Support and Resources</h2>
+                    <p>Autism can be managed with the right support. Early intervention and therapy can help individuals develop skills and cope with challenges. Resources include:</p>
+                    <ul>
+                        <li>Speech and language therapy</li>
+                        <li>Occupational therapy</li>
+                        <li>Social skills training</li>
+                        <li>Support groups for individuals and families</li>
+                    </ul>
+                </section>
+                <section>
+                    <h2>Seeking Help</h2>
+                    <p>If you or someone you know is on the autism spectrum, reaching out to professionals and support networks can make a significant difference. Everyone deserves understanding and acceptance.</p>
+                </section>
+            `;
+        }
+
+        updateScene();
+    </script>
+</body>
+
+</html>

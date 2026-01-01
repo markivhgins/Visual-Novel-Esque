@@ -1,0 +1,602 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- Existing styles remain unchanged -->
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #1e293b;
+            color: white;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 64rem;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .scene {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            transition: background 1s;
+        }
+
+        .time-location-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.75);
+            color: white;
+            padding: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .location, .time {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .dialogue-box {
+            padding: 1.5rem;
+            background: rgba(30, 41, 59, 0.9);
+            transition: all 1s;
+        }
+
+        .character-name {
+            color: #94a3b8;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+
+        .dialogue-text {
+            font-size: 1.125rem;
+            margin-bottom: 1.5rem;
+            transition: opacity 0.5s;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1.5rem;
+        }
+
+        button {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            padding: 0.5rem;
+            transition: color 0.3s;
+        }
+
+        button:hover:not(:disabled) {
+            color: white;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .info-card {
+            max-width: 64rem;
+            margin: 2rem;
+            padding: 2rem;
+            background: #1e293b;
+            border-radius: 0.5rem;
+            border: 1px solid #334155;
+        }
+
+        .info-card h1 {
+            font-size: 1.875rem;
+            font-weight: 300;
+            margin-bottom: 2rem;
+        }
+
+        .info-card section {
+            margin-bottom: 1.5rem;
+        }
+
+        .info-card h2 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .info-card ul {
+            padding-left: 1.5rem;
+        }
+
+        .info-card li {
+            margin-bottom: 0.5rem;
+        }
+
+        .visual-distortion {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .distortion-circle {
+            position: absolute;
+            transition: all 1s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+    <div id="container" class="container">
+        <div id="scene" class="scene">
+            <div id="timeLocationBar" class="time-location-bar" style="display: none;">
+                <div class="location">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                        <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                    <span id="locationText"></span>
+                </div>
+                <div class="time">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <span id="timeText"></span>
+                </div>
+            </div>
+            <div id="visualDistortion" class="visual-distortion"></div>
+        </div>
+        <div id="dialogueBox" class="dialogue-box">
+            <div id="characterName" class="character-name"></div>
+            <div id="dialogueText" class="dialogue-text"></div>
+            <div class="controls">
+                <button id="prevButton" onclick="handlePrevious()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+                <button id="nextButton" onclick="handleNext()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="infoCard" class="info-card" style="display: none;">
+        <!-- Info card content will be dynamically inserted -->
+    </div>
+
+    <script>
+        const scenes = [
+            {
+                background: "linear-gradient(to bottom, #b8e7ff, #e0f2fe)", // Calm, normal morning sky blue
+                dialogues: [
+                    "The alarm buzzes at 7 AM. The sound pierces through my consciousness differently today - more mechanical, almost purposeful.",
+                    "I've been having trouble sleeping lately. The equations from yesterday's quantum mechanics class keep swimming through my mind, forming patterns I've never noticed before.",
+                    "Dr. Sharma's voice echoes in my head: 'The observer effect changes the outcome.' Why does that feel so significant now?"
+                ],
+                character: "Ishaan",
+                distortionLevel: 0,
+                type: "normal",
+                location: "Dorm Room",
+                time: "7:00 AM"
+            },
+            {
+                background: "linear-gradient(to bottom, #ddd6fe, #c4b5fd)", // Slightly unsettling lavender
+                dialogues: [
+                    "My reflection seems... wrong. The face looking back at me appears to shift slightly when I'm not focusing directly on it.",
+                    "The shadows under my eyes look deeper than usual, almost like they're moving. Are they moving?",
+                    "I splash water on my face, trying to clear my head. The drops make patterns on the sink that remind me of wave function collapse."
+                ],
+                character: "Ishaan",
+                distortionLevel: 1,
+                type: "normal",
+                location: "Bathroom",
+                time: "7:15 AM"
+            },
+            {
+                background: "black",
+                dialogues: [
+                    "The mirror knows. Look closer. The equations are everywhere now."
+                ],
+                character: "Whisper",
+                distortionLevel: 0,
+                type: "void",
+                time: "7:16 AM"
+            },
+            {
+                background: "linear-gradient(to bottom, #fde68a, #fcd34d)", // Sickly yellow
+                dialogues: [
+                    "The cafeteria is busy as usual. My roommate Aditya waves me over. 'Rough night?' he asks. Have I been acting strange?"
+                ],
+                character: "Ishaan",
+                distortionLevel: 1,
+                type: "normal",
+                location: "University Cafeteria",
+                time: "7:45 AM"
+            },
+            {
+                background: "linear-gradient(to bottom, #fcd34d, #f59e0b)", // Darker yellow, more intense
+                dialogues: [
+                    "The chatter around me seems to fade in and out. Between bites of toast, I hear fragments of conversations. Are they talking about me?"
+                ],
+                character: "Ishaan",
+                distortionLevel: 2,
+                type: "normal",
+                location: "University Cafeteria",
+                time: "7:50 AM"
+            },
+            {
+                background: "linear-gradient(to bottom, #bae6fd, #7dd3fc)", // Distorted blue
+                dialogues: [
+                    "Quantum mechanics class. Dr. Sharma's discussing wave functions, but between his words, I'm starting to hear something else. Like static on a radio."
+                ],
+                character: "Ishaan",
+                distortionLevel: 2,
+                type: "normal",
+                location: "Physics Lecture Hall",
+                time: "8:30 AM"
+            },
+            {
+                background: "black",
+                dialogues: [
+                    "The equations... they're speaking to you. Listen carefully."
+                ],
+                character: "Voice",
+                distortionLevel: 0,
+                type: "void",
+                time: "8:45 AM"
+            },
+            {
+                background: "linear-gradient(to bottom, #93c5fd, #60a5fa)", // Intensifying blue
+                dialogues: [
+                    "My notes are becoming... different. Between the formulas, I've started drawing patterns. They make sense somehow, connecting quantum states to universal truths."
+                ],
+                character: "Ishaan",
+                distortionLevel: 3,
+                type: "normal",
+                location: "Physics Lecture Hall",
+                time: "9:15 AM"
+            },
+            {
+                background: "linear-gradient(to bottom, #fde68a, #d97706)", // Amber to orange, growing tension
+                dialogues: [
+                    "The library is quiet, but not silent. Never silent anymore. I'm trying to study, but the whispers in the stacks keep distracting me."
+                ],
+                character: "Ishaan",
+                distortionLevel: 3,
+                type: "normal",
+                location: "University Library",
+                time: "10:30 AM"
+            },
+            {
+                background: "linear-gradient(to bottom, #f87171, #ef4444)", // Starting to get red
+                dialogues: [
+                    "My research partner Sarah asks about our quantum entanglement project. I try explaining my new theories, but she looks confused. Why can't she see the connections?"
+                ],
+                character: "Ishaan",
+                distortionLevel: 4,
+                type: "normal",
+                location: "University Library",
+                time: "11:00 AM"
+            },
+            {
+                background: "black",
+                dialogues: [
+                    "She's one of them. They're trying to suppress your discoveries."
+                ],
+                character: "Voices",
+                distortionLevel: 0,
+                type: "void",
+                time: "11:05 AM"
+            },
+            {
+                background: "linear-gradient(to bottom, #fb7185, #e11d48)", // Deeper red
+                dialogues: [
+                    "The campus café feels different today. The lights are too bright, conversations too loud. Everyone keeps glancing at me."
+                ],
+                character: "Ishaan",
+                distortionLevel: 4,
+                type: "normal",
+                location: "Campus Café",
+                time: "12:30 PM"
+            },
+            {
+                background: "linear-gradient(to bottom, #f43f5e, #be123c)", // More intense red
+                dialogues: [
+                    "Aditya tries to engage me in conversation about weekend plans. I nod along, but I'm distracted by the patterns in the coffee steam.", "They're forming equations."
+                ],
+                character: "Ishaan",
+                distortionLevel: 5,
+                type: "normal",
+                location: "Campus Café",
+                time: "12:45 PM"
+            },
+            {
+                background: "linear-gradient(to bottom, #ef4444, #b91c1c)", // Deep red
+                dialogues: [
+                    "Advanced Mathematics. The professor's voice keeps distorting. Between derivatives, I hear warnings.", " Messages.", "The numbers on the board are rearranging themselves."
+                ],
+                character: "Ishaan",
+                distortionLevel: 5,
+                type: "normal",
+                location: "Mathematics Department",
+                time: "2:00 PM"
+            },
+            {
+                background: "black",
+                dialogues: [
+                    "The mathematics holds the truth. You're the only one who understands."
+                ],
+                character: "Voice",
+                distortionLevel: 0,
+                type: "void",
+                time: "2:30 PM"
+            },
+            {
+                background: "linear-gradient(to bottom, #dc2626, #991b1b)", // Blood red
+                dialogues: [
+                    "Study group in the common room. Everyone's talking about the upcoming tests, but their voices sound synchronized, rehearsed.",
+                    "This isn't right."
+                ],
+                character: "Ishaan",
+                distortionLevel: 6,
+                type: "normal",
+                location: "Common Room",
+                time: "4:00 PM"
+            },
+            {
+                background: "linear-gradient(to bottom, #b91c1c, #7f1d1d)", // Dark blood red
+                dialogues: [
+                    "I make an excuse and leave early. Their concerned looks follow me out.",
+                    "They're watching. Always watching."
+                ],
+                character: "Ishaan",
+                distortionLevel: 6,
+                type: "normal",
+                location: "Common Room",
+                time: "4:15 PM"
+            },
+            {
+                background: "linear-gradient(to bottom, #991b1b, #450a0a)", // Very dark red
+                dialogues: [
+                    "Mom calls. She asks why I missed our weekly call yesterday.",
+                    "Did I? The days are blending together. Her voice sounds distant, artificial."
+                ],
+                character: "Ishaan",
+                distortionLevel: 7,
+                type: "normal",
+                location: "Dorm Room",
+                time: "6:00 PM"
+            },
+            {
+                background: "black",
+                dialogues: [
+                    "Even the phone lines aren't safe anymore."
+                ],
+                character: "Voices",
+                distortionLevel: 0,
+                type: "void",
+                time: "6:05 PM"
+            },
+            {
+                background: "linear-gradient(to bottom, #7f1d1d, #250902)", // Almost black red
+                dialogues: [
+                    "The walls of my room are covered in equations now.", "They're beautiful.", "Perfect.", "They explain everything - the watchers, the whispers, the hidden patterns in quantum mechanics.",
+                    "Aditya stands in the doorway, his phone in his hand. Why is he looking at me like that? Who is he calling?","Why can't he see the truth in these numbers?",
+                    "The equations... they're trying to tell me something important.",
+                    "Something about reality itself.",
+                    "I need more time to understand it all..."
+                ],
+                character: "Ishaan",
+                distortionLevel: 9,
+                type: "normal",
+                location: "Dorm Room",
+                time: "9:30 PM"
+            },
+            {
+                background: "black",
+                dialogues: ["End of Story"],
+                character: "",
+                distortionLevel: 0,
+                type: "void",
+                time: "9:45 PM"
+            }
+        ];
+
+        let currentScene = 0;
+        let currentDialogue = 0;
+
+        function updateScene() {
+            const scene = scenes[currentScene];
+            const sceneEl = document.getElementById('scene');
+            const timeLocationBar = document.getElementById('timeLocationBar');
+            const locationText = document.getElementById('locationText');
+            const timeText = document.getElementById('timeText');
+            const characterName = document.getElementById('characterName');
+            const dialogueText = document.getElementById('dialogueText');
+            const visualDistortion = document.getElementById('visualDistortion');
+
+            // Update scene background
+            sceneEl.style.background = scene.background;
+
+            // Update time-location bar
+            if (scene.type === "normal") {
+                timeLocationBar.style.display = "flex";
+                locationText.textContent = scene.location;
+                timeText.textContent = scene.time;
+            } else {
+                timeLocationBar.style.display = "none";
+            }
+
+            // Update dialogue
+            characterName.textContent = scene.character;
+            dialogueText.style.opacity = 0;
+            setTimeout(() => {
+                dialogueText.textContent = scene.dialogues[currentDialogue];
+                dialogueText.style.opacity = 1;
+            }, 500);
+
+            // Update visual distortion
+            visualDistortion.innerHTML = '';
+            if (scene.type === "normal") {
+                const numCircles = Math.floor(scene.distortionLevel * 5);
+                for (let i = 0; i < numCircles; i++) {
+                    const circle = document.createElement('div');
+                    circle.className = 'distortion-circle';
+                    const rotation = (i / numCircles) * 360;
+                    const scale = 1 + (scene.distortionLevel * 0.2);
+                    const opacity = 0.1 + (scene.distortionLevel * 0.1);
+                    circle.innerHTML = `
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                        </svg>
+                    `;
+                    circle.style.transform = `rotate(${rotation}deg) translate(${50 * scale}px) scale(${scale})`;
+                    circle.style.opacity = opacity;
+                    visualDistortion.appendChild(circle);
+                }
+            }
+
+            // Update buttons
+            document.getElementById('prevButton').disabled = currentScene === 0 && currentDialogue === 0;
+            document.getElementById('nextButton').disabled = 
+                currentScene === scenes.length - 1 && 
+                currentDialogue === scenes[currentScene].dialogues.length - 1;
+
+            // Check if we are at "End of Story"
+            if (scene.dialogues[currentDialogue] === "End of Story") {
+                setTimeout(fadeInInfoCard, 3000);
+            }
+        }
+
+        <!-- Previous code remains exactly the same until the fadeInInfoCard function -->
+
+        function fadeInInfoCard() {
+            // Fade out the last scene
+            document.getElementById('container').style.opacity = 1;
+            setTimeout(() => {
+                document.getElementById('container').style.transition = "opacity 2s";
+                document.getElementById('container').style.opacity = 0;
+            }, 1000);
+
+            setTimeout(() => {
+                document.getElementById('container').style.display = 'none';
+                showInfoCard(); // Call showInfoCard function here
+                
+                // Fade in the schizophrenia info card
+                const infoCard = document.getElementById('infoCard');
+                infoCard.style.opacity = 0;
+                
+                setTimeout(() => {
+                    infoCard.style.transition = "opacity 2s";
+                    infoCard.style.opacity = 1;
+                }, 500);
+            }, 3000);
+        }
+
+        function handleNext() {
+            if (currentDialogue < scenes[currentScene].dialogues.length - 1) {
+                currentDialogue++;
+            } else if (currentScene < scenes.length - 1) {
+                currentScene++;
+                currentDialogue = 0;
+            }
+            updateScene();
+        }
+
+        function handlePrevious() {
+            if (currentDialogue > 0) {
+                currentDialogue--;
+            } else if (currentScene > 0) {
+                currentScene--;
+                currentDialogue = scenes[currentScene].dialogues.length - 1;
+            }
+            updateScene();
+        }
+
+        function showInfoCard() {
+            const infoCard = document.getElementById('infoCard');
+            infoCard.style.display = 'block';
+            infoCard.innerHTML = `
+                <h1>Understanding Schizophrenia</h1>
+                
+                <section>
+                    <h2>What is Schizophrenia?</h2>
+                    <p>
+                        Schizophrenia is a complex mental health condition that affects how a person thinks, feels, and behaves. 
+                        It often includes experiences like those depicted in the story: hallucinations, delusions, and disorganized thinking.
+                    </p>
+                </section>
+
+                <section>
+                    <h2>Early Warning Signs</h2>
+                    <ul>
+                        <li>Social withdrawal</li>
+                        <li>Deterioration of personal hygiene</li>
+                        <li>Unusual or irrational statements</li>
+                        <li>Difficulty concentrating</li>
+                        <li>Suspicious or paranoid thoughts</li>
+                        <li>Sleep problems</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2>Treatment and Support</h2>
+                    <p>
+                        Schizophrenia is treatable. Early intervention leads to better outcomes. Treatment typically includes:
+                    </p>
+                    <ul>
+                        <li>Antipsychotic medications</li>
+                        <li>Psychotherapy and counseling</li>
+                        <li>Social skills training</li>
+                        <li>Family education and support</li>
+                        <li>Vocational rehabilitation</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2>Seeking Help</h2>
+                    <p>
+                        If you or someone you know is experiencing symptoms of schizophrenia, it's important to seek professional help. 
+                        Contact a mental health professional, local mental health organization, or emergency services if needed.
+                    </p>
+                </section>
+
+                <section>
+                    <h2>Understanding and Support</h2>
+                    <p>
+                        People with schizophrenia need understanding, patience, and support from family, friends, and society. 
+                        With proper treatment and support, many people with schizophrenia lead fulfilling lives.
+                    </p>
+                    <p>
+                        For immediate help or more information:
+                    </p>
+                    <ul>
+                        <li>National Crisis Hotline: 988</li>
+                        <li>NAMI HelpLine: 1-800-950-NAMI (6264)</li>
+                        <li>SAMHSA's National Helpline: 1-800-662-4357</li>
+                    </ul>
+                </section>
+            `;
+        }
+
+        // Initialize the first scene 
+        updateScene();
+    </script>
+</body>
+</html>

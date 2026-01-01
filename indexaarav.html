@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- Existing styles remain unchanged -->
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #1e293b;
+            color: white;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 64rem;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .scene {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            transition: background 1s;
+        }
+
+        .time-location-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.75);
+            color: white;
+            padding: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .location, .time {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .dialogue-box {
+            padding: 1.5rem;
+            background: rgba(30, 41, 59, 0.9);
+            transition: all 1s;
+        }
+
+        .character-name {
+            color: #94a3b8;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+
+        .dialogue-text {
+            font-size: 1.125rem;
+            margin-bottom: 1.5rem;
+            transition: opacity 0.5s;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1.5rem;
+        }
+
+        button {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            padding: 0.5rem;
+            transition: color 0.3s;
+        }
+
+        button:hover:not(:disabled) {
+            color: white;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .info-card {
+            max-width: 64rem;
+            margin: 2rem;
+            padding: 2rem;
+            background: #1e293b;
+            border-radius: 0.5rem;
+            border: 1px solid #334155;
+        }
+
+        .info-card h1 {
+            font-size: 1.875rem;
+            font-weight: 300;
+            margin-bottom: 2rem;
+        }
+
+        .info-card section {
+            margin-bottom: 1.5rem;
+        }
+
+        .info-card h2 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .info-card ul {
+            padding-left: 1.5rem;
+        }
+
+        .info-card li {
+            margin-bottom: 0.5rem;
+        }
+
+        .visual-distortion {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .distortion-circle {
+            position: absolute;
+            transition: all 1s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+    <div id="container" class="container">
+        <div id="scene" class="scene">
+            <div id="timeLocationBar" class="time-location-bar" style="display: none;">
+                <div class="location">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                        <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                    <span id="locationText"></span>
+                </div>
+                <div class="time">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <span id="timeText"></span>
+                </div>
+            </div>
+            <div id="visualDistortion" class="visual-distortion"></div>
+        </div>
+        <div id="dialogueBox" class="dialogue-box">
+            <div id="characterName" class="character-name"></div>
+            <div id="dialogueText" class="dialogue-text"></div>
+            <div class="controls">
+                <button id="prevButton" onclick="handlePrevious()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+                <button id="nextButton" onclick="handleNext()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="infoCard" class="info-card" style="display: none;">
+        <!-- Info card content will be dynamically inserted -->
+    </div>
+
+    <script>
+        const scenes = [
+            {
+                
+        // Normal morning
+        background: "linear-gradient(to bottom, #f0f9ff, #bae6fd)", // Soft morning blue
+        dialogues: [
+            "Another beautiful morning. The sunrise feels especially vibrant today. I've been up since 3 AM, but I'm not even tired.",
+            "There's so much potential in the air. I can feel it. Today's going to be amazing.",
+            "I've already reorganized my entire workspace and drafted three business proposals."
+        ],
+        character: "Aarav",
+        distortionLevel: 1,
+        type: "normal",
+        location: "Home Office",
+        time: "6:00 AM"
+    },
+    {
+        // Beginning of manic episode
+        background: "linear-gradient(to bottom, #fef3c7, #fcd34d)", // Bright, energetic yellow
+        dialogues: [
+            "The ideas won't stop coming. I've started five different projects since midnight.",
+            "Who needs sleep when there's so much to do? I feel like I could run a marathon right now.",
+            "I should call my investors. No, it's too early. But my ideas are too good to wait!"
+        ],
+        character: "Aarav",
+        distortionLevel: 2,
+        type: "normal",
+        location: "Home Office",
+        time: "6:30 AM"
+    },
+    {
+        background: "linear-gradient(to bottom, #fee2e2, #fca5a5)", // Energetic pink/red
+        dialogues: [
+            "Called my team for an emergency meeting. They need to hear these brilliant ideas now!",
+            "My mind is racing faster than my mouth can keep up. Everything is so clear, so obvious.",
+            "Why isn't everyone as excited as I am? This could revolutionize our entire industry!"
+        ],
+        character: "Aarav",
+        distortionLevel: 3,
+        type: "normal",
+        location: "Office Conference Room",
+        time: "8:00 AM"
+    },
+    {
+        // Peak mania
+        background: "linear-gradient(to bottom, #f472b6, #db2777)", // Intense pink
+        dialogues: [
+            "Just invested half our savings in a new crypto venture. The returns will be astronomical!",
+            "My wife seems worried, but she doesn't understand. I've never seen things more clearly.",
+            "I'm unstoppable. I don't need anyone's approval. I know what I'm doing!"
+        ],
+        character: "Aarav",
+        distortionLevel: 4,
+        type: "normal",
+        location: "Trading Floor",
+        time: "11:00 AM"
+    },
+    {
+        background: "linear-gradient(to bottom, #fb923c, #ea580c)", // Bright orange - peak energy
+        dialogues: [
+            "Fourth cup of coffee, but who's counting? My presentation to the board lasted two hours.",
+            "They tried to interrupt, but they needed to hear every detail. Every. Single. Detail.",
+            "I've already lined up three more meetings. Sleep is for the weak!"
+        ],
+        character: "Aarav",
+        distortionLevel: 5,
+        type: "normal",
+        location: "Board Room",
+        time: "2:00 PM"
+    },
+    {
+        // Beginning of crash
+        background: "linear-gradient(to bottom, #cbd5e1, #94a3b8)", // Graying out
+        dialogues: [
+            "The energy is... different now. Something feels off.",
+            "My thoughts are starting to slow down. Why do I feel so heavy?",
+            "Did I really spend that much money yesterday? What was I thinking?"
+        ],
+        character: "Aarav",
+        distortionLevel: 3,
+        type: "normal",
+        location: "Home",
+        time: "Next Day - 7:00 AM"
+    },
+    {
+        // Depression setting in
+        background: "linear-gradient(to bottom, #64748b, #475569)", // Darkening gray
+        dialogues: [
+            "Can't face the office today. Called in sick.",
+            "The weight of yesterday's decisions is crushing me.",
+            "Everything feels... pointless."
+        ],
+        character: "Aarav",
+        distortionLevel: 2,
+        type: "normal",
+        location: "Bedroom",
+        time: "9:00 AM"
+    },
+    {
+        // Deep depression
+        background: "linear-gradient(to bottom, #334155, #1e293b)", // Deep blue-gray
+        dialogues: [
+            "Haven't left bed in two days. The curtains stay closed.",
+            "My phone keeps ringing. Probably the office. Or my wife. I can't talk to anyone.",
+            "I've ruined everything. Again."
+        ],
+        character: "Aarav",
+        distortionLevel: 1,
+        type: "normal",
+        location: "Bedroom",
+        time: "Two Days Later - 2:00 PM"
+    },
+    {
+        // Deepest depression
+        background: "linear-gradient(to bottom, #1e293b, #0f172a)", // Almost black
+        dialogues: [
+            "The darkness feels like a physical presence now.",
+            "Every mistake, every impulsive decision plays on repeat in my mind.",
+            "I don't deserve anyone's help. I'm a burden to everyone.",
+            "I hate myself, I'm sorry everyone."
+        ],
+        character: "Aarav",
+        distortionLevel: 0,
+        type: "normal",
+        location: "Bedroom",
+        time: "Three Days Later - Time Unknown"
+    },
+    {
+        // Beginning of recovery
+        background: "linear-gradient(to bottom, #475569, #64748b)", // Lightening slightly
+        dialogues: [
+            "My wife brought a therapist to see me. I didn't want to talk at first.",
+            "They mentioned something about 'bipolar disorder.' The cycles, the patterns...",
+            "Maybe... maybe there's an explanation for all of this?"
+        ],
+        character: "Aarav",
+        distortionLevel: 1,
+        type: "normal",
+        location: "Living Room",
+        time: "One Week Later - 3:00 PM"
+    },
+    {
+        // Hope
+        background: "linear-gradient(to bottom, #94a3b8, #cbd5e1)", // Lighter gray
+        dialogues: [
+            "Started medication today. The doctor says it will take time to find the right balance.",
+            "Looking back at the past week... I can see the pattern now.",
+            "I'm not alone in this. There are others who understand."
+        ],
+        character: "Aarav",
+        distortionLevel: 2,
+        type: "normal",
+        location: "Doctor's Office",
+        time: "Two Weeks Later - 10:00 AM"
+    },
+    {
+        // New understanding
+        background: "linear-gradient(to bottom, #bae6fd, #f0f9ff)", // Return to calm morning blue
+        dialogues: [
+            "The medication is helping. The world feels... steadier.",
+            "My wife and I are learning about bipolar disorder together.",
+            "One day at a time. That's what my therapist says.",
+            "One day at a time."
+        ],
+        character: "Aarav",
+        distortionLevel: 1,
+        type: "normal",
+        location: "Home",
+        time: "One Month Later - 8:00 AM"
+    },
+    {
+        background: "linear-gradient(to bottom, #f0f9ff, #bae6fd)",
+        dialogues: ["End of Story"],
+        character: "",
+        distortionLevel: 0,
+        type: "void",
+        time: "Journey Continues"
+    }
+];
+           
+        let currentScene = 0;
+        let currentDialogue = 0;
+
+        function updateScene() {
+            const scene = scenes[currentScene];
+            const sceneEl = document.getElementById('scene');
+            const timeLocationBar = document.getElementById('timeLocationBar');
+            const locationText = document.getElementById('locationText');
+            const timeText = document.getElementById('timeText');
+            const characterName = document.getElementById('characterName');
+            const dialogueText = document.getElementById('dialogueText');
+            const visualDistortion = document.getElementById('visualDistortion');
+
+            // Update scene background
+            sceneEl.style.background = scene.background;
+
+            // Update time-location bar
+            if (scene.type === "normal") {
+                timeLocationBar.style.display = "flex";
+                locationText.textContent = scene.location;
+                timeText.textContent = scene.time;
+            } else {
+                timeLocationBar.style.display = "none";
+            }
+
+            // Update dialogue
+            characterName.textContent = scene.character;
+            dialogueText.style.opacity = 0;
+            setTimeout(() => {
+                dialogueText.textContent = scene.dialogues[currentDialogue];
+                dialogueText.style.opacity = 1;
+            }, 500);
+
+            // Update visual distortion
+            visualDistortion.innerHTML = '';
+            if (scene.type === "normal") {
+                const numCircles = Math.floor(scene.distortionLevel * 5);
+                for (let i = 0; i < numCircles; i++) {
+                    const circle = document.createElement('div');
+                    circle.className = 'distortion-circle';
+                    const rotation = (i / numCircles) * 360;
+                    const scale = 1 + (scene.distortionLevel * 0.2);
+                    const opacity = 0.1 + (scene.distortionLevel * 0.1);
+                    circle.innerHTML = `
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                        </svg>
+                    `;
+                    circle.style.transform = `rotate(${rotation}deg) translate(${50 * scale}px) scale(${scale})`;
+                    circle.style.opacity = opacity;
+                    visualDistortion.appendChild(circle);
+                }
+            }
+
+            // Update buttons
+            document.getElementById('prevButton').disabled = currentScene === 0 && currentDialogue === 0;
+            document.getElementById('nextButton').disabled = 
+                currentScene === scenes.length - 1 && 
+                currentDialogue === scenes[currentScene].dialogues.length - 1;
+
+            // Check if we are at "End of Story"
+            if (scene.dialogues[currentDialogue] === "End of Story") {
+                setTimeout(fadeInInfoCard, 3000);
+            }
+        }
+
+        <!-- Previous code remains exactly the same until the fadeInInfoCard function -->
+
+        function fadeInInfoCard() {
+            // Fade out the last scene
+            document.getElementById('container').style.opacity = 1;
+            setTimeout(() => {
+                document.getElementById('container').style.transition = "opacity 2s";
+                document.getElementById('container').style.opacity = 0;
+            }, 1000);
+
+            setTimeout(() => {
+                document.getElementById('container').style.display = 'none';
+                showInfoCard(); // Call showInfoCard function here
+                
+                // Fade in the schizophrenia info card
+                const infoCard = document.getElementById('infoCard');
+                infoCard.style.opacity = 0;
+                
+                setTimeout(() => {
+                    infoCard.style.transition = "opacity 2s";
+                    infoCard.style.opacity = 1;
+                }, 500);
+            }, 3000);
+        }
+
+        function handleNext() {
+            if (currentDialogue < scenes[currentScene].dialogues.length - 1) {
+                currentDialogue++;
+            } else if (currentScene < scenes.length - 1) {
+                currentScene++;
+                currentDialogue = 0;
+            }
+            updateScene();
+        }
+
+        function handlePrevious() {
+            if (currentDialogue > 0) {
+                currentDialogue--;
+            } else if (currentScene > 0) {
+                currentScene--;
+                currentDialogue = scenes[currentScene].dialogues.length - 1;
+            }
+            updateScene();
+        }
+
+        function showInfoCard() {
+    const infoCard = document.getElementById('infoCard');
+    infoCard.style.display = 'block';
+    infoCard.innerHTML = `
+        <h1>Understanding Bipolar Disorder</h1>
+        
+        <section>
+            <h2>What is Bipolar Disorder?</h2>
+            <p>
+                Bipolar disorder is a mental health condition characterized by extreme mood swings 
+                that include emotional highs (mania or hypomania) and lows (depression). These episodes 
+                can dramatically affect a person's energy, activity levels, judgment, behavior, and ability to think clearly.
+            </p>
+        </section>
+
+        <section>
+            <h2>Signs of Manic Episodes</h2>
+            <ul>
+                <li>Increased energy and agitation</li>
+                <li>Decreased need for sleep</li>
+                <li>Racing thoughts and rapid speech</li>
+                <li>Poor judgment and impulsivity</li>
+                <li>Excessive spending or risky behavior</li>
+                <li>Inflated self-esteem or grandiosity</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>Signs of Depressive Episodes</h2>
+            <ul>
+                <li>Deep sadness or hopelessness</li>
+                <li>Loss of interest in activities</li>
+                <li>Changes in sleep patterns</li>
+                <li>Fatigue or loss of energy</li>
+                <li>Feelings of worthlessness</li>
+                <li>Difficulty concentrating</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>Treatment Options</h2>
+            <ul>
+                <li>Mood stabilizing medications</li>
+                <li>Antipsychotic medications</li>
+                <li>Psychotherapy (individual and family)</li>
+                <li>Lifestyle changes and routine management</li>
+                <li>Support groups and peer support</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>Getting Help</h2>
+            <p>
+                If you or someone you know is experiencing symptoms of bipolar disorder, 
+                professional help is available. Early intervention and consistent treatment 
+                can help manage symptoms and improve quality of life.
+            </p>
+            <p>
+                For immediate assistance:
+            </p>
+            <ul>
+                <li>National Crisis Hotline: 988</li>
+                <li>NAMI HelpLine: 1-800-950-NAMI (6264)</li>
+                <li>DBSA (Depression and Bipolar Support Alliance): 1-800-826-3632</li>
+            </ul>
+        </section>
+    `;
+}
+        // Initialize the first scene 
+        updateScene();
+    </script>
+</body>
+</html>
